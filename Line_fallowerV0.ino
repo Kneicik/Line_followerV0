@@ -1,16 +1,8 @@
 #include <QTRSensors.h>
+#include <WiFi.h>
+#include <AsyncUDP.h>
 
-// This example is designed for use with six analog QTR sensors. These
-// reflectance sensors should be connected to analog pins A0 to A5. The
-// sensors' emitter control pin (CTRL or LEDON) can optionally be connected to
-// digital pin 2, or you can leave it disconnected and remove the call to
-// setEmitterPin().
-//
-// The main loop of the example reads the raw sensor values (uncalibrated). You
-// can test this by taping a piece of 3/4" black electrical tape to a piece of
-// white paper and sliding the sensor across it. It prints the sensor values to
-// the serial monitor as numbers from 0 (maximum reflectance) to 1023 (minimum
-// reflectance).
+
 #define Kp 0.05 // experiment to determine this, start by something small that just makes your bot follow the line at a slow speed
 #define Kd 3 // experiment to determine this, slowly increase the speeds and adjust this value. ( Note: Kp < Kd) 
 #define rightMaxSpeed 100 // max speed of the robot
@@ -18,15 +10,23 @@
 #define rightBaseSpeed 60 // this is the speed at which the motors should spin when the robot is perfectly on the line
 #define leftBaseSpeed 60  // this is the speed at which the motors should spin when the robot is perfectly on the line
 #define NUM_SENSORS  8     // number of sensors used
-#define EMITTER_PIN   4     // emitter is controlled by digital pin 2
+#define EMITTER_PIN   4     
 #define LEFT_MOTOR_FORWARD 14
 #define LEFT_MOTOR_BACKWARD 12
 #define RIGHT_MOTOR_FORWARD 25
 #define RIGHT_MOTOR_BACKWARD 26
 
+const char* ssid = "CBS-2G";
+const char* password = "Karolina2137";
+const IPAddress staticIP(192, 168, 0, 169);
+const IPAddress gateway(192, 168, 0, 1);
+const IPAddress subnet(255, 255, 255, 0);
+
+AsyncUDP udp;
 QTRSensors qtr;
 
 uint16_t sensorValues[NUM_SENSORS];
+int ready = 0;
 
 void setup()
 {
@@ -40,17 +40,44 @@ void setup()
   qtr.setEmitterPin(EMITTER_PIN);
 
   Serial.begin(9600);
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Łączenie z WiFi...");
+  }
+
+  // WiFi.config(staticIP, gateway, subnet);
+    if(udp.listen(1234)) {
+        Serial.print("UDP Listening on IP: ");
+        Serial.println(WiFi.localIP());
+    }
+    udp.onPacket([](AsyncUDPPacket packet) {
+        char* tmpStr = (char*) malloc(packet.length() + 1);
+        memcpy(tmpStr, packet.data(), packet.length());
+        tmpStr[packet.length()] = '\0'; // ensure null termination
+        String message = String(tmpStr);
+        free(tmpStr);
+        Serial.println(message);
+            if(message == "Cal"){
+                calibrate();
+            }
+            if(message == "Reset"){
+                ESP.restart();
+            }
+            if(message == "Start"){
+                ready = 1;
+            }
+            if(message == "Stop"){
+                ready = 0;
+            }
+    });
+    
 
     /* comment this part out for automatic calibration 
   if ( i  < 25 || i >= 75 ) // turn to the left and right to expose the sensors to the brightest and darkest readings that may be encountered
      turn_right();  
    else
      turn_left(); */ 
-  qtr.calibrate();   
-  delay(20);
-  
-  delay(10000); // wait for 10s to position the bot before entering the main loop 
-  Serial.println("Calibration done!");
     
     // comment out for serial printing
     
@@ -72,7 +99,8 @@ void setup()
 }
 
 int lastError = 0;
-
+int rightMotorSpeed = 0;
+int leftMotorSpeed = 0;
 void loop()
 {
   unsigned int sensors[8];
@@ -82,8 +110,8 @@ void loop()
   int motorSpeed = Kp * error + Kd * (error - lastError);
   lastError = error;
 
-  int rightMotorSpeed = rightBaseSpeed + motorSpeed;
-  int leftMotorSpeed = leftBaseSpeed - motorSpeed;
+  rightMotorSpeed = rightBaseSpeed + motorSpeed;
+  leftMotorSpeed = leftBaseSpeed - motorSpeed;
   
     if (rightMotorSpeed > rightMaxSpeed ) rightMotorSpeed = rightMaxSpeed; // prevent the motor from going beyond max speed
   if (leftMotorSpeed > leftMaxSpeed ) leftMotorSpeed = leftMaxSpeed; // prevent the motor from going beyond max speed
@@ -92,33 +120,37 @@ void loop()
   
    {
   // move forward with appropriate speeds
-  Serial.print(leftMotorSpeed);
-  Serial.print(" ");
-  Serial.print(rightMotorSpeed);
-  Serial.print(" ");
-  Serial.print(position);
-  Serial.println("");
-  analogWrite(LEFT_MOTOR_BACKWARD, rightMotorSpeed); //only works if "DRV8835MotorShield motors;" is defined in the beginning
-  analogWrite(RIGHT_MOTOR_FORWARD, leftMotorSpeed); //only works if "DRV8835MotorShield motors;" is defined in the beginning
+  // Serial.print(leftMotorSpeed);
+  // Serial.print(" ");
+  // Serial.print(rightMotorSpeed);
+  // Serial.print(" ");
+  // Serial.print(position);
+  // Serial.println("");
+  static unsigned long lastMillis = 0;
+  unsigned long currentMillis = millis();
+  if (currentMillis - lastMillis >= 500) { 
+    lastMillis = currentMillis;
+    String pos = "Position: " + String(position); 
+    udp.broadcast(pos.c_str()); 
+    Serial.println("sent");
+  }
+  if(ready == 1){
+    analogWrite(LEFT_MOTOR_BACKWARD, rightMotorSpeed);
+    analogWrite(RIGHT_MOTOR_FORWARD, leftMotorSpeed);
+  }else{
+    analogWrite(LEFT_MOTOR_BACKWARD, 0);
+    analogWrite(RIGHT_MOTOR_FORWARD, 0);
+  }
 
    }
 }
 
-
-
-  // void loop()
-// {
-//   // read raw sensor values
-//   qtr.read(sensorValues);
-
-//   // print the sensor values as numbers from 0 to 1023, where 0 means maximum
-//   // reflectance and 1023 means minimum reflectance
-//   for (uint8_t i = 0; i < SensorCount; i++)
-//   {
-//     Serial.print(sensorValues[i]);
-//     Serial.print('\t');
-//   }
-//   Serial.println();
-
-//   delay(250);
-// }
+void calibrate(){
+  qtr.calibrate();   
+  
+  delay(10000);
+  Serial.println("Calibration done!");
+  udp.broadcast("C");
+  udp.broadcast("C");
+  udp.broadcast("C");
+}
