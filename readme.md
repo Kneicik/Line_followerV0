@@ -1,15 +1,14 @@
 ## LINE FALLOWER TO RULE THEM ALL
-Nie mam pojęcia co robię
+Pierwsza wersja ulepa LFa autorstwa Filip Skawiński
 
-# RADY MARCINKA
-- czujniki na **threshold**
-- podeprzeć PTFE na gorący klej, odstęp **1-2mm**
-- najpierw eliminacja **sprzętowa/fizyczna** błędów
-- **diody** na robocie do debugu
-- aplikacja na **wifi/bt** do debugu w czasie rzeczywistym
+# HOW TO
+
+Aplikację zaimportować do MIT APP Inventor, skompilować i zainstalować na telefonie.
+
+Po podłączeniu do AP robota albo robota do sieci WiFi kliknąć Start na górze aplikacji. Jeżeli robot działa to pojawi się zielona buźka.
+Robota naley skalibrować co trwa parenaście sekund a potem już można się bawić.
 
 # TO DO
 - schemat podłączeń
 - BOM
-- aplikacja
 - komentarze
