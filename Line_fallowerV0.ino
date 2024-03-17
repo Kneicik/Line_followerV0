@@ -2,25 +2,27 @@
 #include <WiFi.h>
 #include <AsyncUDP.h>
 
-
-#define Kp 0.05 // experiment to determine this, start by something small that just makes your bot follow the line at a slow speed
-#define Kd 3 // experiment to determine this, slowly increase the speeds and adjust this value. ( Note: Kp < Kd) 
-#define rightMaxSpeed 100 // max speed of the robot
-#define leftMaxSpeed 100 // max speed of the robot
-#define rightBaseSpeed 60 // this is the speed at which the motors should spin when the robot is perfectly on the line
-#define leftBaseSpeed 60  // this is the speed at which the motors should spin when the robot is perfectly on the line
-#define NUM_SENSORS  8     // number of sensors used
+float Kp = 0.5; 
+float Ki = 0.0;  
+float Kd = 1;
+float MaxSpeed = 80; 
+float BaseSpeed = 50;
+float TurnSpeed = 70;
+// float Kp = 0.77; 
+// float Ki = 0.0;  
+// float Kd = 5.25;
+// float MaxSpeed = 75; 
+// float BaseSpeed = 140;
+// float TurnSpeed = 140;
+#define NUM_SENSORS  6    
 #define EMITTER_PIN   4     
-#define LEFT_MOTOR_FORWARD 14
-#define LEFT_MOTOR_BACKWARD 12
+#define LEFT_MOTOR_FORWARD 12
+#define LEFT_MOTOR_BACKWARD 14
 #define RIGHT_MOTOR_FORWARD 25
 #define RIGHT_MOTOR_BACKWARD 26
 
-const char* ssid = "CBS-2G";
+const char* ssid = "LF";
 const char* password = "Karolina2137";
-const IPAddress staticIP(192, 168, 0, 169);
-const IPAddress gateway(192, 168, 0, 1);
-const IPAddress subnet(255, 255, 255, 0);
 
 AsyncUDP udp;
 QTRSensors qtr;
@@ -30,127 +32,203 @@ int ready = 0;
 
 void setup()
 {
-  pinMode(12, OUTPUT);
-  pinMode(14, OUTPUT);
-  pinMode(26, OUTPUT);
-  pinMode(25, OUTPUT);
-  // configure the sensors
+  pinMode(LEFT_MOTOR_FORWARD, OUTPUT);
+  pinMode(LEFT_MOTOR_BACKWARD, OUTPUT);
+  pinMode(RIGHT_MOTOR_FORWARD, OUTPUT);
+  pinMode(RIGHT_MOTOR_BACKWARD, OUTPUT);
+  analogReadResolution(12);
+
   qtr.setTypeAnalog();
-  qtr.setSensorPins((const uint8_t[]){36, 39, 34, 35, 32, 33, 27, 13}, NUM_SENSORS);
+  qtr.setSensorPins((const uint8_t[]){39, 34, 35, 32, 33, 36}, NUM_SENSORS);
   qtr.setEmitterPin(EMITTER_PIN);
 
   Serial.begin(9600);
-  WiFi.begin(ssid, password);
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.println("Łączenie z WiFi...");
-  }
+
+// if you want esp32 to be the access point
+
+  WiFi.softAP(ssid, password);
+
+  // if you want to connect to existing network
+
+  // WiFi.begin(ssid, password);
+  // while (WiFi.status() != WL_CONNECTED) {
+  //   delay(1000);
+  //   Serial.println("Łączenie z WiFi...");
+  // }
 
   // WiFi.config(staticIP, gateway, subnet);
-    if(udp.listen(1234)) {
-        Serial.print("UDP Listening on IP: ");
-        Serial.println(WiFi.localIP());
-    }
-    udp.onPacket([](AsyncUDPPacket packet) {
-        char* tmpStr = (char*) malloc(packet.length() + 1);
-        memcpy(tmpStr, packet.data(), packet.length());
-        tmpStr[packet.length()] = '\0'; // ensure null termination
-        String message = String(tmpStr);
-        free(tmpStr);
-        Serial.println(message);
-            if(message == "Cal"){
-                calibrate();
-            }
-            if(message == "Reset"){
-                ESP.restart();
-            }
-            if(message == "Start"){
-                ready = 1;
-            }
-            if(message == "Stop"){
-                ready = 0;
-            }
+  if(udp.listen(1234)) {
+      Serial.print("UDP Listening on IP: ");
+      Serial.println(WiFi.localIP());
+  }
+
+  udp.onPacket([](AsyncUDPPacket packet) {
+      char* tmpStr = (char*) malloc(packet.length() + 1);
+      memcpy(tmpStr, packet.data(), packet.length());
+      tmpStr[packet.length()] = '\0'; // ensure null termination
+      String message = String(tmpStr);
+      String firstTwoLetters = message.substring(0, 2);
+      free(tmpStr);
+      Serial.println(message);
+          if(message == "Cal"){
+              calibrate();
+          }
+          if(message == "Reset"){
+              ESP.restart();
+          }
+          if(message == "Start"){
+              ready = 1;
+          }
+          if(message == "Stop"){
+              ready = 0;
+          }
+          if(message == "Sensors"){
+              request_sensorsRaw();
+          }
+          if(message == "Params"){
+              request_params();
+          }
+          if(firstTwoLetters == "Kp"){
+            String numericalPart = message.substring(4);
+            float numericalValue = numericalPart.toFloat();
+            Kp = numericalValue;
+          }
+          if(firstTwoLetters == "Ki"){
+            String numericalPart = message.substring(4);
+            float numericalValue = numericalPart.toFloat();
+            Ki = numericalValue;
+          }
+          if(firstTwoLetters == "Kd"){
+            String numericalPart = message.substring(4);
+            float numericalValue = numericalPart.toFloat();
+            Kd = numericalValue;
+          }
+          if(firstTwoLetters == "Ma"){
+            String numericalPart = message.substring(4);
+            float numericalValue = numericalPart.toFloat();
+            MaxSpeed = numericalValue;
+          }
+          if(firstTwoLetters == "Ba"){
+            String numericalPart = message.substring(4);
+            float numericalValue = numericalPart.toFloat();
+            BaseSpeed = numericalValue;
+          }
     });
     
-
-    /* comment this part out for automatic calibration 
-  if ( i  < 25 || i >= 75 ) // turn to the left and right to expose the sensors to the brightest and darkest readings that may be encountered
-     turn_right();  
-   else
-     turn_left(); */ 
-    
-    // comment out for serial printing
-    
-    // Serial.begin(9600);
-    // for (int i = 0; i < NUM_SENSORS; i++)
-    // {
-    //   Serial.print(qtr.calibratedMinimumOn[i]);
-    //   Serial.print(' ');
-    // }
-    // Serial.println();
-
-    // for (int i = 0; i < NUM_SENSORS; i++)
-    // {
-    //   Serial.print(qtr.calibratedMaximumOn[i]);
-    //   Serial.print(' ');
-    // }
-    // Serial.println();
-    // Serial.println();
 }
 
 int lastError = 0;
 int rightMotorSpeed = 0;
 int leftMotorSpeed = 0;
+int last_sighted = 0;
+int lost;
+int lost_threshold = 450;
+int lost_sensors;
+
 void loop()
 {
-  unsigned int sensors[8];
   int position = qtr.readLineBlack(sensorValues); // get calibrated readings along with the line position, refer to the QTR Sensors Arduino Library for more details on line position.
-  int error = position - 3500;
+  if(position <= 1800 || sensorValues[0] >=800){
+    if(lost == 0){
+      last_sighted = 1;
+    }
+  } else if(position >= 3000 || sensorValues[5] >= 800){
+    if(lost == 0){
+      last_sighted = 2;
+    }
+  }
+  lost_sensors = 0;
+  lost = 0;
+  for(int i = 0; i < NUM_SENSORS; i++){
+    if(sensorValues[i] <= lost_threshold){
+      lost_sensors += 1;
+    }
+  }
+  if(lost_sensors >= (NUM_SENSORS)){
+    lost = 1;
+  }
+  int error = position -2500;
 
   int motorSpeed = Kp * error + Kd * (error - lastError);
   lastError = error;
 
-  rightMotorSpeed = rightBaseSpeed + motorSpeed;
-  leftMotorSpeed = leftBaseSpeed - motorSpeed;
+  rightMotorSpeed = BaseSpeed + motorSpeed;
+  leftMotorSpeed = BaseSpeed - motorSpeed;
   
-    if (rightMotorSpeed > rightMaxSpeed ) rightMotorSpeed = rightMaxSpeed; // prevent the motor from going beyond max speed
-  if (leftMotorSpeed > leftMaxSpeed ) leftMotorSpeed = leftMaxSpeed; // prevent the motor from going beyond max speed
-  if (rightMotorSpeed < 0) rightMotorSpeed = 0; // keep the motor speed positive
-  if (leftMotorSpeed < 0) leftMotorSpeed = 0; // keep the motor speed positive
+  if (rightMotorSpeed > MaxSpeed ) rightMotorSpeed = MaxSpeed; 
+  if (leftMotorSpeed > MaxSpeed ) leftMotorSpeed = MaxSpeed; 
+  if (rightMotorSpeed < 0) rightMotorSpeed = 0; 
+  if (leftMotorSpeed < 0) leftMotorSpeed = 0; 
   
-   {
-  // move forward with appropriate speeds
-  // Serial.print(leftMotorSpeed);
-  // Serial.print(" ");
-  // Serial.print(rightMotorSpeed);
-  // Serial.print(" ");
-  // Serial.print(position);
-  // Serial.println("");
+   
   static unsigned long lastMillis = 0;
   unsigned long currentMillis = millis();
-  if (currentMillis - lastMillis >= 500) { 
+  if (currentMillis - lastMillis >= 400) { 
     lastMillis = currentMillis;
     String pos = "Position: " + String(position); 
     udp.broadcast(pos.c_str()); 
-    Serial.println("sent");
+    udp.broadcast("!"); 
+    request_sensorsRaw();
   }
   if(ready == 1){
-    analogWrite(LEFT_MOTOR_BACKWARD, rightMotorSpeed);
-    analogWrite(RIGHT_MOTOR_FORWARD, leftMotorSpeed);
+    if(lost == 1 && last_sighted == 1){
+      analogWrite(RIGHT_MOTOR_FORWARD, TurnSpeed); 
+      analogWrite(LEFT_MOTOR_BACKWARD, TurnSpeed); 
+      delay(10);
+      analogWrite(LEFT_MOTOR_FORWARD, 0);
+      analogWrite(RIGHT_MOTOR_BACKWARD, 0);
+    } else if(lost == 1 && last_sighted == 2){
+      analogWrite(RIGHT_MOTOR_FORWARD, 0); 
+      analogWrite(LEFT_MOTOR_BACKWARD, 0); 
+      delay(10);
+      analogWrite(LEFT_MOTOR_FORWARD, TurnSpeed);
+      analogWrite(RIGHT_MOTOR_BACKWARD, TurnSpeed);
+    }
+    else {
+      analogWrite(RIGHT_MOTOR_BACKWARD, 0);
+      analogWrite(LEFT_MOTOR_BACKWARD, 0);
+      analogWrite(LEFT_MOTOR_FORWARD, rightMotorSpeed);
+      analogWrite(RIGHT_MOTOR_FORWARD, leftMotorSpeed);
+    }
   }else{
-    analogWrite(LEFT_MOTOR_BACKWARD, 0);
+    analogWrite(LEFT_MOTOR_FORWARD, 0);
     analogWrite(RIGHT_MOTOR_FORWARD, 0);
+    analogWrite(LEFT_MOTOR_BACKWARD, 0);
+    analogWrite(RIGHT_MOTOR_BACKWARD, 0);
   }
-
-   }
 }
 
 void calibrate(){
-  qtr.calibrate();   
-  
-  delay(10000);
-  Serial.println("Calibration done!");
+  qtr.resetCalibration();
+  for (uint16_t i = 0; i < 400; i++){
+    qtr.calibrate();
+  }
+  // for (uint8_t i = 0; i < NUM_SENSORS; i++){
+    // Serial.print(qtr.calibrationOn.minimum[i]);
+    // udp.broadcast(qtr.calibrationOn.minimum[i]);
+    // Serial.print(' ');
+  // }
   udp.broadcast("C");
   udp.broadcast("C");
   udp.broadcast("C");
+}
+
+void request_sensorsRaw(){
+  String sensors = "Sensor ";
+  for (uint8_t i = 0; i < NUM_SENSORS; i++)
+  {
+    sensors += String(sensorValues[i]) + " ";
+    // Serial.print(sensorValues[i]);
+    // Serial.print(" ");
+    // Serial.print('\t');
+  }
+  sensors += "Last: " + String(last_sighted) + " Lost: " + String(lost);
+  // Serial.println("");
+  udp.broadcast(sensors.c_str());
+}
+
+void request_params(){
+  String params = "Kp: " + String(Kp) + " Ki: " + String(Ki) + " Kd: " + String(Kd) + " Max speed: " + String(MaxSpeed) + " Base speed: " + String(BaseSpeed);
+  Serial.println(params);
+  udp.broadcast(params.c_str());
 }
