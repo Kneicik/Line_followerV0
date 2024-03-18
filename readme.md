@@ -18,10 +18,9 @@ Robota należy skalibrować co trwa parenaście sekund a potem już można się 
 - MaxSpeed: prędkość gdy robot jedzie w prostej linii
 - TurnSpeed: prędkość gdy robot wyjedzie za linie i próbuje wrócić
 
-## schemat podłączeń
+## Schemat podłączeń
 
-![Schemat](Schemat.png)
-
+<img alt="Schemat" src="Schemat.png">
 
 ## Rady Norberta
 
