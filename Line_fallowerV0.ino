@@ -56,7 +56,6 @@ void setup()
   //   Serial.println("Łączenie z WiFi...");
   // }
 
-  // WiFi.config(staticIP, gateway, subnet);
   if(udp.listen(1234)) {
       Serial.print("UDP Listening on IP: ");
       Serial.println(WiFi.localIP());
@@ -137,7 +136,8 @@ void loop()
     if(lost == 0){
       last_sighted = 1;
     }
-  } else if(position >= 3000 || sensorValues[5] >= 800){
+  } 
+  else if(position >= 3000 || sensorValues[5] >= 800){
     if(lost == 0){
       last_sighted = 2;
     }
@@ -152,7 +152,8 @@ void loop()
   if(lost_sensors >= (NUM_SENSORS)){
     lost = 1;
   }
-  int error = position -2500;
+
+  int error = position - 2500;
 
   int motorSpeed = Kp * error + Kd * (error - lastError);
   lastError = error;
@@ -165,10 +166,9 @@ void loop()
   if (rightMotorSpeed < 0) rightMotorSpeed = 0; 
   if (leftMotorSpeed < 0) leftMotorSpeed = 0; 
   
-   
   static unsigned long lastMillis = 0;
   unsigned long currentMillis = millis();
-  if (currentMillis - lastMillis >= 400) { 
+  if (currentMillis - lastMillis >= 200) { 
     lastMillis = currentMillis;
     String pos = "Position: " + String(position); 
     udp.broadcast(pos.c_str()); 
@@ -182,20 +182,22 @@ void loop()
       delay(10);
       analogWrite(LEFT_MOTOR_FORWARD, 0);
       analogWrite(RIGHT_MOTOR_BACKWARD, 0);
-    } else if(lost == 1 && last_sighted == 2){
+    }
+    else if(lost == 1 && last_sighted == 2){
       analogWrite(RIGHT_MOTOR_FORWARD, 0); 
       analogWrite(LEFT_MOTOR_BACKWARD, 0); 
       delay(10);
       analogWrite(LEFT_MOTOR_FORWARD, TurnSpeed);
       analogWrite(RIGHT_MOTOR_BACKWARD, TurnSpeed);
     }
-    else {
+    else{
       analogWrite(RIGHT_MOTOR_BACKWARD, 0);
       analogWrite(LEFT_MOTOR_BACKWARD, 0);
       analogWrite(LEFT_MOTOR_FORWARD, rightMotorSpeed);
       analogWrite(RIGHT_MOTOR_FORWARD, leftMotorSpeed);
     }
-  }else{
+  }
+  else{
     analogWrite(LEFT_MOTOR_FORWARD, 0);
     analogWrite(RIGHT_MOTOR_FORWARD, 0);
     analogWrite(LEFT_MOTOR_BACKWARD, 0);
@@ -233,7 +235,7 @@ void request_sensorsRaw(){
 }
 
 void request_params(){
-  String params = "Kp: " + String(Kp) + " Ki: " + String(Ki) + " Kd: " + String(Kd) + " Max speed: " + String(MaxSpeed) + " Base speed: " + String(BaseSpeed) + " Turn speed: " + String(TurnSpeed);
-  Serial.println(params);
+  String params = "Kp: " + String(Kp) + " Ki: " + String(Ki) + " Kd: " + String(Kd) + " Max: " + String(MaxSpeed) + " Base: " + String(BaseSpeed) + " Turn: " + String(TurnSpeed);
+  // Serial.println(params);
   udp.broadcast(params.c_str());
 }
