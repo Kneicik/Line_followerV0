@@ -113,6 +113,11 @@ void setup()
             float numericalValue = numericalPart.toFloat();
             BaseSpeed = numericalValue;
           }
+          if(firstTwoLetters == "Tu"){
+            String numericalPart = message.substring(4);
+            float numericalValue = numericalPart.toFloat();
+            TurnSpeed = numericalValue;
+          }
     });
     
 }
@@ -228,7 +233,7 @@ void request_sensorsRaw(){
 }
 
 void request_params(){
-  String params = "Kp: " + String(Kp) + " Ki: " + String(Ki) + " Kd: " + String(Kd) + " Max speed: " + String(MaxSpeed) + " Base speed: " + String(BaseSpeed);
+  String params = "Kp: " + String(Kp) + " Ki: " + String(Ki) + " Kd: " + String(Kd) + " Max speed: " + String(MaxSpeed) + " Base speed: " + String(BaseSpeed) + " Turn speed: " + String(TurnSpeed);
   Serial.println(params);
   udp.broadcast(params.c_str());
 }
