@@ -8,6 +8,7 @@ float Kd = 1;
 float MaxSpeed = 80; 
 float BaseSpeed = 50;
 float TurnSpeed = 70;
+float lost_threshold = 450;
 // float Kp = 0.77; 
 // float Ki = 0.0;  
 // float Kd = 5.25;
@@ -117,6 +118,11 @@ void setup()
             float numericalValue = numericalPart.toFloat();
             TurnSpeed = numericalValue;
           }
+          if(firstTwoLetters == "Th"){
+            String numericalPart = message.substring(4);
+            float numericalValue = numericalPart.toFloat();
+            lost_threshold = numericalValue;
+          }
     });
     
 }
@@ -126,7 +132,6 @@ int rightMotorSpeed = 0;
 int leftMotorSpeed = 0;
 int last_sighted = 0;
 int lost;
-int lost_threshold = 450;
 int lost_sensors;
 
 void loop()
@@ -179,14 +184,12 @@ void loop()
     if(lost == 1 && last_sighted == 1){
       analogWrite(RIGHT_MOTOR_FORWARD, TurnSpeed); 
       analogWrite(LEFT_MOTOR_BACKWARD, TurnSpeed); 
-      delay(10);
       analogWrite(LEFT_MOTOR_FORWARD, 0);
       analogWrite(RIGHT_MOTOR_BACKWARD, 0);
     }
     else if(lost == 1 && last_sighted == 2){
       analogWrite(RIGHT_MOTOR_FORWARD, 0); 
       analogWrite(LEFT_MOTOR_BACKWARD, 0); 
-      delay(10);
       analogWrite(LEFT_MOTOR_FORWARD, TurnSpeed);
       analogWrite(RIGHT_MOTOR_BACKWARD, TurnSpeed);
     }
@@ -235,7 +238,7 @@ void request_sensorsRaw(){
 }
 
 void request_params(){
-  String params = "Kp: " + String(Kp) + " Ki: " + String(Ki) + " Kd: " + String(Kd) + " Max: " + String(MaxSpeed) + " Base: " + String(BaseSpeed) + " Turn: " + String(TurnSpeed);
+  String params = "Kp: " + String(Kp) + " Ki: " + String(Ki) + " Kd: " + String(Kd) + " Max: " + String(MaxSpeed) + " Base: " + String(BaseSpeed) + " Turn: " + String(TurnSpeed) + " Lost_th: " + String(lost_threshold);
   // Serial.println(params);
   udp.broadcast(params.c_str());
 }
