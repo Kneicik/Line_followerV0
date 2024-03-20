@@ -73,6 +73,5 @@ Robota należy skalibrować co trwa parenaście sekund a potem już można się 
 Zrobić czujniki w konfiguracji 1,3,4,5,6,8
 
 ## TO DO
-- schemat podłączeń
-- BOM
+
 - komentarze

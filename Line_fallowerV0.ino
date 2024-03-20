@@ -33,15 +33,22 @@ int ready = 0;
 
 void setup()
 {
+
+// Set motor PWM pins as OUTPUT
+
   pinMode(LEFT_MOTOR_FORWARD, OUTPUT);
   pinMode(LEFT_MOTOR_BACKWARD, OUTPUT);
   pinMode(RIGHT_MOTOR_FORWARD, OUTPUT);
   pinMode(RIGHT_MOTOR_BACKWARD, OUTPUT);
   analogReadResolution(12);
 
+// Setup the QTR Sensor
+
   qtr.setTypeAnalog();
   qtr.setSensorPins((const uint8_t[]){39, 34, 35, 32, 33, 36}, NUM_SENSORS);
   qtr.setEmitterPin(EMITTER_PIN);
+
+// For debugging only
 
   Serial.begin(9600);
 
@@ -57,10 +64,14 @@ void setup()
   //   Serial.println("Łączenie z WiFi...");
   // }
 
+// Otwarcie socketu UDP na porcie 1234 do nasłuchiwania
+
   if(udp.listen(1234)) {
       Serial.print("UDP Listening on IP: ");
       Serial.println(WiFi.localIP());
   }
+
+// Handler otrzymanych pakietów
 
   udp.onPacket([](AsyncUDPPacket packet) {
       char* tmpStr = (char*) malloc(packet.length() + 1);
@@ -136,7 +147,12 @@ int lost_sensors;
 
 void loop()
 {
-  int position = qtr.readLineBlack(sensorValues); // get calibrated readings along with the line position, refer to the QTR Sensors Arduino Library for more details on line position.
+  // Czytaj pozycję czarnej linii
+
+  int position = qtr.readLineBlack(sensorValues);
+
+  // Zapamiętywanie ostatniej pozycji linii
+
   if(position <= 1800 || sensorValues[0] >=800){
     if(lost == 0){
       last_sighted = 1;
@@ -147,6 +163,9 @@ void loop()
       last_sighted = 2;
     }
   }
+
+  // Sprawdzanie czy robot się zgubił
+
   lost_sensors = 0;
   lost = 0;
   for(int i = 0; i < NUM_SENSORS; i++){
@@ -157,6 +176,8 @@ void loop()
   if(lost_sensors >= (NUM_SENSORS)){
     lost = 1;
   }
+
+  // Regulator PID. Error nalezy ustawić w zalezności od ilości czujników np. dla 6 czujników max pozycja to 5000 dlatego srodek linii to 2500 a dla 8 czujników max pozycja to 7000 więc środek linii to 3500
 
   int error = position - 2500;
 
@@ -170,16 +191,22 @@ void loop()
   if (leftMotorSpeed > MaxSpeed ) leftMotorSpeed = MaxSpeed; 
   if (rightMotorSpeed < 0) rightMotorSpeed = 0; 
   if (leftMotorSpeed < 0) leftMotorSpeed = 0; 
+
+  // Wysyłanie danych czujników co ustalony interwał czasu (ms)
   
+  int interval = 200;
   static unsigned long lastMillis = 0;
   unsigned long currentMillis = millis();
-  if (currentMillis - lastMillis >= 200) { 
+  if (currentMillis - lastMillis >= interval) { 
     lastMillis = currentMillis;
     String pos = "Position: " + String(position); 
     udp.broadcast(pos.c_str()); 
     udp.broadcast("!"); 
     request_sensorsRaw();
   }
+
+  // Algorytm jazdy
+
   if(ready == 1){
     if(lost == 1 && last_sighted == 1){
       analogWrite(RIGHT_MOTOR_FORWARD, TurnSpeed); 
@@ -208,6 +235,8 @@ void loop()
   }
 }
 
+// Funkcja kalibracji. "C" jest uywane przez aplikację na telefonie do określenia czy kalibracja się skończyła
+
 void calibrate(){
   qtr.resetCalibration();
   for (uint16_t i = 0; i < 400; i++){
@@ -223,6 +252,8 @@ void calibrate(){
   udp.broadcast("C");
 }
 
+// Wysyła wartości kazdego czujnika do aplikacji
+
 void request_sensorsRaw(){
   String sensors = "Sensor ";
   for (uint8_t i = 0; i < NUM_SENSORS; i++)
@@ -236,6 +267,8 @@ void request_sensorsRaw(){
   // Serial.println("");
   udp.broadcast(sensors.c_str());
 }
+
+// Wysyła aktualne parametry do aplikacji
 
 void request_params(){
   String params = "Kp: " + String(Kp) + " Ki: " + String(Ki) + " Kd: " + String(Kd) + " Max: " + String(MaxSpeed) + " Base: " + String(BaseSpeed) + " Turn: " + String(TurnSpeed) + " Lost_th: " + String(lost_threshold);
