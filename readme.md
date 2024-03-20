@@ -1,4 +1,4 @@
-# LINE FALLOWER TO RULE THEM ALL
+# LINE FOLLOWER TO RULE THEM ALL
 Pierwsza wersja ulepa LFa autorstwa Filip Skawiński
 
 ## HOW TO
