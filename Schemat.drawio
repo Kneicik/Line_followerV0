@@ -1,4 +1,4 @@
-<mxfile host="Electron" modified="2024-03-20T09:38:29.135Z" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/21.5.1 Chrome/112.0.5615.204 Electron/24.6.0 Safari/537.36" etag="wJIKaMlWUZ5FyqQ4Z5NC" version="21.5.1" type="device">
+<mxfile host="Electron" modified="2024-03-20T09:43:10.352Z" agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/21.5.1 Chrome/112.0.5615.204 Electron/24.6.0 Safari/537.36" etag="Tp8AM3X0FL94A5gBfhSS" version="21.5.1" type="device">
   <diagram name="Strona-1" id="bUhDNV_u1UkhwmZs7GpW">
     <mxGraphModel dx="2514" dy="2245" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
@@ -116,7 +116,7 @@
           <mxGeometry x="-132.36" y="-929" width="60" height="30" as="geometry" />
         </mxCell>
         <mxCell id="CyoZrRa69h0uVVIVTvC--41" value="&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;3.3V&lt;/font&gt;&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;rotation=0;" parent="1" vertex="1">
-          <mxGeometry x="-120" y="-739" width="60" height="30" as="geometry" />
+          <mxGeometry x="-119" y="-739" width="60" height="30" as="geometry" />
         </mxCell>
         <mxCell id="CyoZrRa69h0uVVIVTvC--42" value="&lt;b&gt;&lt;font style=&quot;font-size: 15px;&quot;&gt;Vbat&lt;/font&gt;&lt;/b&gt;" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;rotation=0;" parent="1" vertex="1">
           <mxGeometry x="-660" y="-504" width="60" height="30" as="geometry" />
