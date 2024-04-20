@@ -1,10 +1,11 @@
 #include <QTRSensors.h>
 #include <WiFi.h>
 #include <AsyncUDP.h>
+#include <Adafruit_NeoPixel.h>
 
 float Kp = 0.5; 
 float Ki = 0.0;  
-float Kd = 1;
+float Kd = 5;
 float MaxSpeed = 80; 
 float BaseSpeed = 50;
 float TurnSpeed = 70;
@@ -15,12 +16,14 @@ float lost_threshold = 450;
 // float MaxSpeed = 75; 
 // float BaseSpeed = 140;
 // float TurnSpeed = 140;
-#define NUM_SENSORS  6    
-#define EMITTER_PIN   4     
-#define LEFT_MOTOR_FORWARD 12
-#define LEFT_MOTOR_BACKWARD 14
-#define RIGHT_MOTOR_FORWARD 25
-#define RIGHT_MOTOR_BACKWARD 26
+#define NUM_SENSORS  8    
+#define EMITTER_PIN   16     
+#define LEFT_MOTOR_FORWARD 11
+#define LEFT_MOTOR_BACKWARD 12
+#define RIGHT_MOTOR_FORWARD 13
+#define RIGHT_MOTOR_BACKWARD 14
+#define NEOPIXEL_PIN 48
+#define NUM_PIXELS 1
 
 const char* ssid = "LF";
 const char* password = "Karolina2137";
@@ -31,8 +34,11 @@ QTRSensors qtr;
 uint16_t sensorValues[NUM_SENSORS];
 int ready = 0;
 
+Adafruit_NeoPixel pixels(NUM_PIXELS, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
+
 void setup()
 {
+  pixels.begin();
 
 // Set motor PWM pins as OUTPUT
 
@@ -45,7 +51,8 @@ void setup()
 // Setup the QTR Sensor
 
   qtr.setTypeAnalog();
-  qtr.setSensorPins((const uint8_t[]){39, 34, 35, 32, 33, 36}, NUM_SENSORS);
+  // qtr.setSensorPins((const uint8_t[]){ 7, 4, 5, 10, 6, 8, 3, 9}, NUM_SENSORS);
+  qtr.setSensorPins((const uint8_t[]){ 9, 3, 8, 6, 10, 5, 4, 7}, NUM_SENSORS);
   qtr.setEmitterPin(EMITTER_PIN);
 
 // For debugging only
@@ -66,6 +73,7 @@ void setup()
 
 // Otwarcie socketu UDP na porcie 1234 do nasłuchiwania
 
+  // if(udp.listen(5005)) {
   if(udp.listen(1234)) {
       Serial.print("UDP Listening on IP: ");
       Serial.println(WiFi.localIP());
@@ -144,6 +152,7 @@ int leftMotorSpeed = 0;
 int last_sighted = 0;
 int lost;
 int lost_sensors;
+int last_detection_time = 0;
 
 void loop()
 {
@@ -153,16 +162,36 @@ void loop()
 
   // Zapamiętywanie ostatniej pozycji linii
 
-  if(position <= 1800 || sensorValues[0] >=800){
-    if(lost == 0){
+if (sensorValues[0] >= 800 && sensorValues[NUM_SENSORS-1] < 800) {
+    if (last_sighted != 1 && millis() - last_detection_time >= 100) {
       last_sighted = 1;
+      last_detection_time = millis();
+      pixels.setPixelColor(0, pixels.Color(0, 255, 0)); // Zielony dla lewej
+      pixels.show();
+    }
+  } else if (sensorValues[0] < 800 && sensorValues[NUM_SENSORS-1] >= 800) {
+    if (last_sighted != 2 && millis() - last_detection_time >= 100) {
+      last_sighted = 2;
+      last_detection_time = millis();
+      pixels.setPixelColor(0, pixels.Color(255, 0, 0)); // Czerwony dla prawej
+      pixels.show();
     }
   } 
-  else if(position >= 3000 || sensorValues[5] >= 800){
-    if(lost == 0){
-      last_sighted = 2;
-    }
-  }
+
+  // if(position <= 1800 || sensorValues[0] >= 800){
+  //   if(lost == 0){
+  //     last_sighted = 1;
+  //     pixels.setPixelColor(0, pixels.Color(0, 255, 0));
+  //     pixels.show();
+  //   }
+  // } 
+  // else if(position >= 5500 || sensorValues[NUM_SENSORS-1] >= 800){
+  //   if(lost == 0){
+  //     last_sighted = 2;
+  //     pixels.setPixelColor(0, pixels.Color(255, 0, 0));
+  //     pixels.show();
+  //   }
+  // }
 
   // Sprawdzanie czy robot się zgubił
 
@@ -179,7 +208,7 @@ void loop()
 
   // Regulator PID. Error nalezy ustawić w zalezności od ilości czujników np. dla 6 czujników max pozycja to 5000 dlatego srodek linii to 2500 a dla 8 czujników max pozycja to 7000 więc środek linii to 3500
 
-  int error = position - 2500;
+  int error = position - 3500;
 
   int motorSpeed = Kp * error + Kd * (error - lastError);
   lastError = error;
@@ -217,12 +246,14 @@ void loop()
     else if(lost == 1 && last_sighted == 2){
       analogWrite(RIGHT_MOTOR_FORWARD, 0); 
       analogWrite(LEFT_MOTOR_BACKWARD, 0); 
+      delay(10);
       analogWrite(LEFT_MOTOR_FORWARD, TurnSpeed);
       analogWrite(RIGHT_MOTOR_BACKWARD, TurnSpeed);
     }
     else{
       analogWrite(RIGHT_MOTOR_BACKWARD, 0);
       analogWrite(LEFT_MOTOR_BACKWARD, 0);
+      delay(10);
       analogWrite(LEFT_MOTOR_FORWARD, rightMotorSpeed);
       analogWrite(RIGHT_MOTOR_FORWARD, leftMotorSpeed);
     }
