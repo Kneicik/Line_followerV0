@@ -5,7 +5,7 @@
 
 float Kp = 0.5; 
 float Ki = 0.0;  
-float Kd = 1;
+float Kd = 5;
 float MaxSpeed = 80; 
 float BaseSpeed = 50;
 float TurnSpeed = 70;
