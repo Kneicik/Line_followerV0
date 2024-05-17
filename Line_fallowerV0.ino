@@ -61,20 +61,20 @@ void setup()
 
 // if you want esp32 to be the access point
 
-  WiFi.softAP(ssid, password);
+  // WiFi.softAP(ssid, password);
 
   // if you want to connect to existing network
 
-  // WiFi.begin(ssid, password);
-  // while (WiFi.status() != WL_CONNECTED) {
-  //   delay(1000);
-  //   Serial.println("Łączenie z WiFi...");
-  // }
+  WiFi.begin(ssid, password);
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.println("Łączenie z WiFi...");
+  }
 
 // Otwarcie socketu UDP na porcie 1234 do nasłuchiwania
 
-  // if(udp.listen(5005)) {
-  if(udp.listen(1234)) {
+  if(udp.listen(5005)) {
+  // if(udp.listen(1234)) {
       Serial.print("UDP Listening on IP: ");
       Serial.println(WiFi.localIP());
   }
