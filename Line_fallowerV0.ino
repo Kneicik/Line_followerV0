@@ -28,6 +28,8 @@ float lost_threshold = 450;
 const char* ssid = "LF";
 const char* password = "Karolina2137";
 
+const char* ID = "ESP32-S3";
+
 AsyncUDP udp;
 QTRSensors qtr;
 
@@ -228,7 +230,7 @@ if (sensorValues[0] >= 800 && sensorValues[NUM_SENSORS-1] < 800) {
   unsigned long currentMillis = millis();
   if (currentMillis - lastMillis >= interval) { 
     lastMillis = currentMillis;
-    String pos = "Position: " + String(position); 
+    String pos = String(ID) + " Position: " + String(position); 
     udp.broadcast(pos.c_str()); 
     udp.broadcast("!"); 
     request_sensorsRaw();
@@ -286,7 +288,7 @@ void calibrate(){
 // Wysyła wartości kazdego czujnika do aplikacji
 
 void request_sensorsRaw(){
-  String sensors = "Sensor ";
+  String sensors = String(ID) + " Sensor ";
   for (uint8_t i = 0; i < NUM_SENSORS; i++)
   {
     sensors += String(sensorValues[i]) + " ";
@@ -302,7 +304,7 @@ void request_sensorsRaw(){
 // Wysyła aktualne parametry do aplikacji
 
 void request_params(){
-  String params = "Kp: " + String(Kp) + " Ki: " + String(Ki) + " Kd: " + String(Kd) + " Max: " + String(MaxSpeed) + " Base: " + String(BaseSpeed) + " Turn: " + String(TurnSpeed) + " Lost_th: " + String(lost_threshold);
+  String params = String(ID) + " Kp: " + String(Kp) + " Ki: " + String(Ki) + " Kd: " + String(Kd) + " Max: " + String(MaxSpeed) + " Base: " + String(BaseSpeed) + " Turn: " + String(TurnSpeed) + " Lost_th: " + String(lost_threshold);
   // Serial.println(params);
   udp.broadcast(params.c_str());
 }
