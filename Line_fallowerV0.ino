@@ -18,10 +18,10 @@ float lost_threshold = 450;
 // float TurnSpeed = 140;
 #define NUM_SENSORS  8    
 #define EMITTER_PIN   16     
-#define LEFT_MOTOR_FORWARD 11
-#define LEFT_MOTOR_BACKWARD 12
-#define RIGHT_MOTOR_FORWARD 13
-#define RIGHT_MOTOR_BACKWARD 14
+#define LEFT_MOTOR_FORWARD 12
+#define LEFT_MOTOR_BACKWARD 11
+#define RIGHT_MOTOR_FORWARD 14
+#define RIGHT_MOTOR_BACKWARD 13
 #define NEOPIXEL_PIN 48
 #define NUM_PIXELS 1
 
