@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <AsyncUDP.h>
 #include <Adafruit_NeoPixel.h>
+#include "AS5600.h"
 
 float Kp = 0.5; 
 float Ki = 0.0;  
@@ -10,12 +11,22 @@ float MaxSpeed = 80;
 float BaseSpeed = 50;
 float TurnSpeed = 70;
 float lost_threshold = 450;
+float LeftEncoderStatus = 0;
+float RightEncoderStatus = 0;
 // float Kp = 0.77; 
 // float Ki = 0.0;  
 // float Kd = 5.25;
 // float MaxSpeed = 75; 
 // float BaseSpeed = 140;
 // float TurnSpeed = 140;
+
+#define SDA_1 17
+#define SCL_1 15
+#define SDA_2 18
+#define SCL_2 46
+#define LEFT_DIR_PIN 20
+#define RIGHT_DIR_PIN 19
+
 #define NUM_SENSORS  8    
 #define EMITTER_PIN   16     
 #define LEFT_MOTOR_FORWARD 12
@@ -24,6 +35,12 @@ float lost_threshold = 450;
 #define RIGHT_MOTOR_BACKWARD 13
 #define NEOPIXEL_PIN 48
 #define NUM_PIXELS 1
+
+TwoWire I2C_1(0);
+TwoWire I2C_2(1);
+
+ AS5600 as5600_left(&I2C_1); // left motor
+ AS5600 as5600_right(&I2C_2); // right motor
 
 const char* ssid = "LF";
 const char* password = "Karolina2137";
@@ -55,9 +72,26 @@ void setup()
   qtr.setSensorPins((const uint8_t[]){ 9, 3, 8, 6, 10, 5, 4, 7}, NUM_SENSORS);
   qtr.setEmitterPin(EMITTER_PIN);
 
+// Initialize I2C for encoders
+
+  I2C_1.begin(SDA_1, SCL_1, 100000);
+  I2C_2.begin(SDA_2, SCL_2, 100000);
+
+// Setup the encoders
+
+  as5600_left.begin(LEFT_DIR_PIN);
+  // as5600_right.begin(RIGHT_DIR_PIN);
+  as5600_left.setDirection(AS5600_COUNTERCLOCK_WISE);
+  as5600_right.setDirection(AS5600_CLOCK_WISE);
+  LeftEncoderStatus = as5600_left.isConnected();
+  RightEncoderStatus = as5600_right.isConnected();
+
 // For debugging only
 
   Serial.begin(9600);
+  Serial.println(as5600_left.getAddress());
+  Serial.println(as5600_right.getAddress());
+  Serial.print(String(LeftEncoderStatus) + " " + String(RightEncoderStatus));
 
 // if you want esp32 to be the access point
 
@@ -302,7 +336,7 @@ void request_sensorsRaw(){
 // Wysyła aktualne parametry do aplikacji
 
 void request_params(){
-  String params = "Kp: " + String(Kp) + " Ki: " + String(Ki) + " Kd: " + String(Kd) + " Max: " + String(MaxSpeed) + " Base: " + String(BaseSpeed) + " Turn: " + String(TurnSpeed) + " Lost_th: " + String(lost_threshold);
+  String params = "Kp: " + String(Kp) + " Ki: " + String(Ki) + " Kd: " + String(Kd) + " Max: " + String(MaxSpeed) + " Base: " + String(BaseSpeed) + " Turn: " + String(TurnSpeed) + " Lost_th: " + String(lost_threshold) + " Encoders: " + String(LeftEncoderStatus) + " " + String(RightEncoderStatus);
   // Serial.println(params);
   udp.broadcast(params.c_str());
 }
